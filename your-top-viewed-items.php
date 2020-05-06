@@ -42,8 +42,33 @@
       }
 
       function custom_post_type(){
-          register_post_type( 'book', ['public' => true, 'label' => 'Books'] );
+        global $wpdb;
+        $table_name = $wpdb->prefix. "your_top_viewed_items";
+        global $charset_collate;
+        $charset_collate = $wpdb->get_charset_collate();
+        global $db_version;
+           $create_sql = "CREATE TABLE " . $table_name . " (
+            id INT(11) NOT NULL auto_increment,
+            views INT(11) NOT NULL ,
+            productid INT(11) NOT NULL,
+            userid int(10) NOT NULL,
+            PRIMARY KEY (id))$charset_collate;";
+        
+        require_once(ABSPATH . "wp-admin/includes/upgrade.php");
+        dbDelta( $create_sql );
+
+        echo $create_sql;
+
+
+        //register the new table with the wpdb object
+        if (!isset($wpdb->ratings_fansub))
+        {
+            $wpdb->ratings_fansub = $table_name;
+            //add the shortcut so you can use $wpdb->stats
+            $wpdb->tables[] = str_replace($wpdb->prefix, '', $table_name);
+        }
       }
+
       function you_login(){
         if ( is_user_logged_in() ):
             echo "Welcome user! : ";
@@ -52,7 +77,7 @@
         endif;
         }
         function findUser(){
-            //edw tha valw boolean an exei agorastei to proinon
+            $have_been_bought = false;
             $my_product_id = $this->the_product_id();
             $current_user = wp_get_current_user();
             if ( $current_user ):
@@ -75,14 +100,41 @@
                     $items = $order->get_items();
                     foreach ( $items as $item ) {
                         $product_id = $item->get_product_id();
-                        echo "+ $product_id +";
-                        $product_ids[] = $product_id;
-                        //sygkrinw an to exei xanagorasei kai an nai tote h boolean ginetai true
+                        if ( $product_id == $my_product_id):
+                            $have_been_bought = true;
+                        endif;
                     }
                 }
+                 //an boolean true tote den kanw kati alliw paw kai prostheto stn db mou
+                if ($have_been_bought):
+                    echo "you have bought this item";                    
+                else:
+                    echo "you have not bought this item";
+                    $this->add_views($user_id, $my_product_id);
+                endif;
             endif;
-            //an boolean true tote den kanw kati alliw paw kai prostheto stn db mou
+           
             
+        }
+
+        function add_views($user_id, $product_id){
+            global $wpdb;
+            $table = $wpdb->prefix.'your_top_viewed_items';
+            $views = $wpdb->get_results(
+            "
+            SELECT views FROM wp_your_top_viewed_items WHERE productid=$product_id AND userid=$user_id;
+            "
+            );
+            if ($views):
+                $all_views =  $views[0]->views + 1;
+                $data = array('views'=>$all_views);
+                $where = array('productid'=>$product_id, 'userid'=>$user_id);
+                $updated = $wpdb->update( $table, $data, $where );
+            else:
+                $data = array('productid' => $product_id, 'userid' => $user_id, 'views'=>1);
+                $format = array('%s','%d');
+                $wpdb->insert($table,$data,$format);
+            endif;
         }
 
   }
