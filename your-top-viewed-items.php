@@ -57,7 +57,6 @@
         require_once(ABSPATH . "wp-admin/includes/upgrade.php");
         dbDelta( $create_sql );
 
-        echo $create_sql;
 
 
         //register the new table with the wpdb object
@@ -71,9 +70,6 @@
 
       function you_login(){
         if ( is_user_logged_in() ):
-            echo "Welcome user! : ";
-        else:
-            echo 'Welcome, visitor!';
         endif;
         }
         function findUser(){
@@ -106,10 +102,7 @@
                     }
                 }
                  //an boolean true tote den kanw kati alliw paw kai prostheto stn db mou
-                if ($have_been_bought):
-                    echo "you have bought this item";                    
-                else:
-                    echo "you have not bought this item";
+                if ( ! $have_been_bought):
                     $this->add_views($user_id, $my_product_id);
                 endif;
             endif;
