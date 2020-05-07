@@ -20,14 +20,17 @@
   class YourTopViewedItems
   {
       function __construct(){
-          add_action('init', array($this, "you_login"));
-          add_action( 'woocommerce_before_single_product', array($this, 'findUser'), 10 );  
+          add_action( 'woocommerce_before_single_product', array($this, 'findUser'), 10 );
+          
     }
+    
       function the_product_id() {
-        echo "I am in ";
-        global $product;
-        return $product->get_id();
-        }
+        if ( is_product()):
+            global $product;
+            return $product->get_id();
+        endif;
+    }
+
      
       function activate() {
           //generate a CPT
@@ -67,17 +70,12 @@
             $wpdb->tables[] = str_replace($wpdb->prefix, '', $table_name);
         }
       }
-
-      function you_login(){
-        if ( is_user_logged_in() ):
-        endif;
-        }
+        
         function findUser(){
             $have_been_bought = false;
             $my_product_id = $this->the_product_id();
             $current_user = wp_get_current_user();
             if ( $current_user ):
-                echo $current_user->first_name;
                 $user_id = $current_user->ID;
                 // GET USER ORDERS (COMPLETED + PROCESSING)
                 $customer_orders = get_posts( array(
@@ -140,4 +138,49 @@ register_activation_hook(__FILE__, array($yourTopViewedItems, 'activate'));
 
 //deactivation
 register_deactivation_hook(__FILE__, array($yourTopViewedItems, 'deactivate'));
+
+function display_item(){
+        $current_user = wp_get_current_user();
+        $user_id = $current_user->ID;
+        global $wpdb;
+        $table = $wpdb->prefix.'your_top_viewed_items';
+        $products = $wpdb->get_results(
+        "
+        SELECT productid FROM wp_your_top_viewed_items WHERE userid=$user_id ORDER BY `wp_your_top_viewed_items`.`views` DESC LIMIT 4;
+        "
+        );
+        $Content = "<section id=\"latest\" class=\"module-small\" style=\"overflow: scroll; \"><div class=\"container\">";
+        $Content .= '<div class="row">';
+         $Content .= '<div class="col-sm-6 col-sm-offset-3">';
+         $Content .= '<h2 class="module-title font-alt product-banners-title">  YOUR TOP VIEWED PRODUCTS  </h2>';
+         $Content .= "<ul style=\"display:inline;\" >";
+        $Content = "<div class=\"woocommerce columns-4 \"><ul class=\"products columns-4\">";
+        foreach ($products as $product){
+            $id = $product->productid;
+            $_product = wc_get_product( $id );
+            $name = $_product->get_name();
+            $link = get_permalink($id);
+            $image = $_product->get_image();
+            $rating = $_product->get_average_rating();
+            $Content .= "<li style=\"display: inline; clear:none;\" class=\"product type-product post-101 status-publish first instock has-post-thumbnail sale taxable shipping-taxable purchasable product-type-variable\">
+                <a href=\"$link\" class=\"woocommerce-LoopProduct-link woocommerce-loop-product__link\"><div class=\"prod-img-wrap\"><img width=\"262\" height=\"262\"  class=\"attachment-shop_catalog size-shop_catalog wp-post-image\" alt=\"\" title=\"$name\" sizes=\"(max-width: 262px) 100vw, 262px\" src=$image <div class=\"product-button-wrap\"></div></div><h2 class=\"woocommerce-loop-product__title\">$name</h2>
+                </a></li>";
+        }
+         $Content .= "</ul>";
+         $Content .= '</div>';
+         $Content .= '</div>';
+         $Content .= '</div>';
+         $Content .= '</section/>';
+    $Content .= "</ul></div>";
+    return $Content;  
+
+}
+
+function most_viewed(){
+    return "Hello gamww";
+}
+
+add_shortcode('your-top-viewed-items','display_item');
+add_shortcode('heyy','most_viewed');
+
 
